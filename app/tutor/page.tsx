@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Users, BookOpen, Trophy, ArrowLeft, Plus, Trash2, Target, Copy } from "lucide-react"
 import Link from "next/link"
-import { supabase } from "@/lib/supabase/client"
+import { supabase, isSupabaseConfigured } from "@/lib/supabase/client"
 import Image from "next/image"
 
 interface Student {
@@ -36,6 +36,16 @@ interface Tutor {
 const materias = ["Programación I", "Contabilidad", "Comunicación"]
 
 export default function TutorDashboard() {
+  if (!isSupabaseConfigured) {
+    return (
+      <div className="p-4">
+        <p className="text-center text-sm text-muted-foreground">
+          Supabase no está configurado. El panel de tutor está deshabilitado.
+        </p>
+      </div>
+    )
+  }
+
   const [selectedTutor, setSelectedTutor] = useState("")
   const [tutorPassword, setTutorPassword] = useState("")
   const [passwordError, setPasswordError] = useState("")
@@ -60,6 +70,7 @@ export default function TutorDashboard() {
   })
 
   const loadTutors = async () => {
+    if (!isSupabaseConfigured) return
     try {
       const { data: tutorsData, error: tutorsError } = await supabase.from("tutors").select("name")
 
@@ -94,6 +105,7 @@ export default function TutorDashboard() {
       return
     }
 
+    if (!isSupabaseConfigured) return
     try {
       setIsLoading(true)
 
@@ -134,10 +146,12 @@ export default function TutorDashboard() {
   }
 
   useEffect(() => {
+    if (!isSupabaseConfigured) return
     loadTutors()
   }, [])
 
   const loadStudents = async (materia: string) => {
+    if (!isSupabaseConfigured) return
     try {
       setIsLoading(true)
 
@@ -225,6 +239,7 @@ export default function TutorDashboard() {
 
   const clearSemesterData = async () => {
     if (!selectedMateria) return
+    if (!isSupabaseConfigured) return
 
     const confirmed = window.confirm(
       `¿Estás seguro de que quieres eliminar TODOS los datos del bimestre para ${selectedMateria}? Esta acción no se puede deshacer.`,
@@ -300,6 +315,7 @@ export default function TutorDashboard() {
   }
 
   useEffect(() => {
+    if (!isSupabaseConfigured) return
     if (selectedMateria) {
       loadStudents(selectedMateria)
     }
@@ -318,6 +334,7 @@ export default function TutorDashboard() {
   }
 
   const loadAdminData = async () => {
+    if (!isSupabaseConfigured) return
     await loadTutors()
     await loadSubjects()
     setAdminTutors(tutores)
@@ -326,6 +343,7 @@ export default function TutorDashboard() {
   const deleteTutor = async (tutorName: string) => {
     if (!confirm(`¿Estás seguro de eliminar al tutor ${tutorName}?`)) return
 
+    if (!isSupabaseConfigured) return
     try {
       setIsLoading(true)
 
@@ -345,6 +363,7 @@ export default function TutorDashboard() {
   const createNewMateria = async () => {
     if (!newMateriaName.trim()) return
 
+    if (!isSupabaseConfigured) return
     try {
       setIsLoading(true)
 
@@ -388,6 +407,7 @@ export default function TutorDashboard() {
   const deleteMateria = async (materia: string) => {
     if (!confirm(`¿Estás seguro de eliminar la materia ${materia}?`)) return
 
+    if (!isSupabaseConfigured) return
     try {
       setIsLoading(true)
 
@@ -410,6 +430,7 @@ export default function TutorDashboard() {
   }
 
   const loadSubjects = async () => {
+    if (!isSupabaseConfigured) return
     try {
       const { data: subjectsData, error } = await supabase.from("subjects").select("name").order("name")
 
@@ -426,6 +447,7 @@ export default function TutorDashboard() {
   }
 
   const assignTutorToSubject = async (tutorName: string, subjectName: string) => {
+    if (!isSupabaseConfigured) return
     try {
       setIsLoading(true)
 
@@ -455,6 +477,7 @@ export default function TutorDashboard() {
   const removeTutorFromSubject = async (tutorName: string, subjectName: string) => {
     if (!confirm(`¿Estás seguro de quitar a ${tutorName} de ${subjectName}?`)) return
 
+    if (!isSupabaseConfigured) return
     try {
       setIsLoading(true)
 
