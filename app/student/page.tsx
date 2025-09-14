@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Target, CheckCircle, ArrowLeft, BookOpen, FileCheck, HelpCircle, Code, X, Heart, User } from "lucide-react"
 import Link from "next/link"
-import { supabase, isSupabaseConfigured } from "@/lib/supabase/client"
+import { supabase } from "@/lib/supabase/client"
 import Image from "next/image"
 
 interface StudentData {
@@ -31,6 +31,8 @@ interface StudentData {
   totalPoints: number
   lastSessionDate?: string // Para controlar reinicio de sesiones
 }
+
+type NotConfigured = { status: "not_configured" }
 
 const materias = ["Programación I", "Contabilidad", "Comunicación"]
 
@@ -347,13 +349,20 @@ export default function StudentDashboard() {
     return today !== lastSession
   }
 
-  const loadStudentData = async (dni: string): Promise<StudentData | null> => {
+  const loadStudentData = async (
+    dni: string,
+  ): Promise<StudentData | NotConfigured | null> => {
     try {
       console.log("[v0] Loading student data for DNI:", dni)
 
-      if (!isSupabaseConfigured) {
-        console.error("Supabase is not properly configured")
-        return null
+      if (
+        !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+        !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      ) {
+        console.warn(
+          "[supabase] faltan env NEXT_PUBLIC_*, se omite carga remota",
+        )
+        return { status: "not_configured" }
       }
 
       // Get student basic info
@@ -501,7 +510,9 @@ export default function StudentDashboard() {
       try {
         console.log("[v0] Attempting to load student data for DNI:", dni)
         const existingStudent = await loadStudentData(dni)
-        if (existingStudent && existingStudent.nick) {
+        if (existingStudent && "status" in existingStudent) {
+          console.warn("[supabase] datos remotos no disponibles")
+        } else if (existingStudent && existingStudent.nick) {
           console.log("[v0] Found existing student:", existingStudent.nick)
           setFormData((prev) => ({
             ...prev,
@@ -584,9 +595,10 @@ export default function StudentDashboard() {
     setError("")
 
     try {
-      let student = await loadStudentData(formData.dni)
+      const studentResult = await loadStudentData(formData.dni)
+      let student: StudentData
 
-      if (!student) {
+      if (!studentResult || "status" in studentResult) {
         console.log("[v0] Creating default data for new student:", formData.dni)
         student = {
           dni: formData.dni,
@@ -600,6 +612,8 @@ export default function StudentDashboard() {
           totalPoints: 0,
           lastSessionDate: null,
         }
+      } else {
+        student = studentResult
       }
 
       setStudentData(student)
